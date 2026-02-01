@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:oldstable
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx openssl gettext-base ca-certificates \
