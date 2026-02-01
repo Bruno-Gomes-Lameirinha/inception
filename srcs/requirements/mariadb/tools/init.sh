@@ -20,7 +20,6 @@ if [ ! -d /var/lib/mysql/mysql ]; then
   mariadb-install-db --user=mysql --datadir=/var/lib/mysql >/dev/null
 fi
 
-# servidor temporário SEM rede
 mariadbd --user=mysql --datadir=/var/lib/mysql \
   --skip-networking --socket="$SOCK" &
 pid="$!"
@@ -32,7 +31,6 @@ until mariadb-admin --protocol=SOCKET --socket="$SOCK" ping >/dev/null 2>&1; do
   sleep 1
 done
 
-# root com/sem senha (sempre via socket)
 if mariadb --protocol=SOCKET --socket="$SOCK" -uroot -p"$DB_ROOT_PASS" -e "SELECT 1" >/dev/null 2>&1; then
   ROOT_ARGS="-uroot -p$DB_ROOT_PASS"
 else
@@ -50,5 +48,4 @@ mariadb --protocol=SOCKET --socket="$SOCK" $ROOT_ARGS -e \
 mariadb-admin --protocol=SOCKET --socket="$SOCK" $ROOT_ARGS shutdown
 wait "$pid"
 
-# servidor definitivo COM rede (porta 3306) e rodando como mysql
 exec "$@" --user=mysql

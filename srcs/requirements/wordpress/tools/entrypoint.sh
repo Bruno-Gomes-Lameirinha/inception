@@ -15,7 +15,6 @@ DB_PASS="$(cat /run/secrets/db_password)"
 WP_ADMIN_PASS="$(cat /run/secrets/wp_admin_password)"
 WP_USER_PASS="$(cat /run/secrets/wp_user_password)"
 
-# Proteção: admin não pode conter admin/Admin/administrator...
 lc_admin="$(printf "%s" "$WP_ADMIN_USER" | tr '[:upper:]' '[:lower:]')"
 case "$lc_admin" in
   *admin*|*administrator*)
@@ -24,15 +23,12 @@ case "$lc_admin" in
     ;;
 esac
 
-# Se o volume estiver vazio, copia o WP pra /var/www/html
 if [ ! -f /var/www/html/wp-settings.php ]; then
   cp -R /usr/src/wordpress/* /var/www/html/
   chown -R www-data:www-data /var/www/html
 fi
 
-# Só configura/instala se ainda não existir wp-config.php
 if [ ! -f /var/www/html/wp-config.php ]; then
-  # Espera o MariaDB (timeout, sem loop infinito)
   i=0
   until mariadb -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$DB_PASS" \
         -e "SELECT 1;" "$MYSQL_DATABASE" >/dev/null 2>&1; do
@@ -41,14 +37,12 @@ if [ ! -f /var/www/html/wp-config.php ]; then
     sleep 1
   done
 
-  # wp-config.php
   wp config create --allow-root --path=/var/www/html \
     --dbname="$MYSQL_DATABASE" \
     --dbuser="$MYSQL_USER" \
     --dbpass="$DB_PASS" \
     --dbhost="$MYSQL_HOST"
 
-  # Instala WP
   wp core install --allow-root --path=/var/www/html \
     --url="https://${DOMAIN_NAME}" \
     --title="$WP_TITLE" \
@@ -56,11 +50,9 @@ if [ ! -f /var/www/html/wp-config.php ]; then
     --admin_password="$WP_ADMIN_PASS" \
     --admin_email="$WP_ADMIN_EMAIL"
 
-  # Cria usuário normal
   wp user create --allow-root --path=/var/www/html \
     "$WP_USER" "$WP_USER_EMAIL" \
     --user_pass="$WP_USER_PASS"
 fi
 
-# Processo final vira o principal (PID 1 do container)
 exec "$@"
